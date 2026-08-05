@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  username         String    @unique @db.VarChar(50)
+  password         String    @db.VarChar(255)
+  realName         String    @map("real_name") @db.VarChar(50)
+  className        String    @map("class_name") @default("") @db.VarChar(50)
+  avatar           String    @default("") @db.VarChar(500)
+  signature        String    @default("") @db.VarChar(200)
+  birthday         String    @default("") @db.VarChar(20)
+  address          String    @default("") @db.VarChar(200)
+  hobbies          String    @default("") @db.VarChar(500)
+  phone            String    @default("") @db.VarChar(30)
+  email            String    @default("") @db.VarChar(100)
+  wechat           String    @default("") @db.VarChar(100)
+  weibo            String    @default("") @db.VarChar(100)
+  douyin           String    @default("") @db.VarChar(100)
+  bilibili         String    @default("") @db.VarChar(100)
+  coverImage       String    @map("cover_image") @default("") @db.VarChar(500)
+  cardBackground   String    @map("card_background") @default("color") @db.VarChar(20)
+  cardBgColor      String    @map("card_bg_color") @default("#ffffff") @db.VarChar(20)
+  cardBgImage      String    @map("card_bg_image") @default("") @db.VarChar(500)
+  phonePrivacy     String    @map("phone_privacy") @default("public") @db.VarChar(20)
+  emailPrivacy     String    @map("email_privacy") @default("public") @db.VarChar(20)
+  wechatPrivacy    String    @map("wechat_privacy") @default("public") @db.VarChar(20)
+  weiboPrivacy     String    @map("weibo_privacy") @default("public") @db.VarChar(20)
+  douyinPrivacy    String    @map("douyin_privacy") @default("public") @db.VarChar(20)
+  bilibiliPrivacy  String    @map("bilibili_privacy") @default("public") @db.VarChar(20)
+  privacyOverrides String    @map("privacy_overrides") @default("{}") @db.Text
+  onlineStatus     Boolean   @map("online_status") @default(false)
+  lastActiveAt     DateTime? @map("last_active_at")
+  lastHeartbeatAt  DateTime? @map("last_heartbeat_at")
+  status           String    @default("active") @db.VarChar(20)
+  notifyComment    Boolean   @map("notify_comment") @default(true)
+  notifyLike       Boolean   @map("notify_like") @default(true)
+  notifyAudit      Boolean   @map("notify_audit") @default(true)
+  notifySystem     Boolean   @map("notify_system") @default(true)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  posts             Post[]
+  classEvents       ClassEvent[]
+  eventImages       EventImage[]
+  notifications     Notification[]
+  likes             Like[]
+  comments          Comment[]
+  eventComments     EventImageComment[]
+  eventLikes        EventImageLike[]
+
+  @@map("users")
+}
+
+model RegistrationCode {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique @db.VarChar(20)
+  status    String    @default("unused") @db.VarChar(20)
+  expiresAt DateTime? @map("expires_at")
+  usedBy    Int?      @map("used_by")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("registration_codes")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  role      String   @default("admin") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+model Post {
+  id           Int              @id @default(autoincrement())
+  userId       Int              @map("user_id")
+  content      String           @db.Text
+  status       String           @default("pending") @db.VarChar(20)
+  rejectReason String           @map("reject_reason") @default("") @db.VarChar(500)
+  likeCount    Int              @default(0) @map("like_count")
+  commentCount Int              @default(0) @map("comment_count")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments PostAttachment[]
+  likes       Like[]
+  comments    Comment[]
+
+  @@map("posts")
+}
+
+model PostAttachment {
+  id           Int      @id @default(autoincrement())
+  postId       Int      @map("post_id")
+  fileName     String   @map("file_name") @db.VarChar(255)
+  fileType     String   @map("file_type") @db.VarChar(50)
+  fileSize     Int      @map("file_size")
+  url          String   @db.VarChar(500)
+  thumbnailUrl String   @map("thumbnail_url") @default("") @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_attachments")
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_id")
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model ClassEvent {
+  id          Int          @id @default(autoincrement())
+  userId      Int          @map("user_id")
+  title       String       @db.VarChar(200)
+  description String       @db.Text
+  eventDate   DateTime     @map("event_date")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images EventImage[]
+
+  @@map("class_events")
+}
+
+model EventImage {
+  id           Int        @id @default(autoincrement())
+  eventId      Int        @map("event_id")
+  userId       Int        @map("user_id")
+  imageType    String     @map("image_type") @db.VarChar(20)
+  url          String     @db.VarChar(500)
+  thumbnailUrl String     @map("thumbnail_url") @db.VarChar(500)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  event    ClassEvent         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments EventImageComment[]
+  likes    EventImageLike[]
+
+  @@map("event_images")
+}
+
+model EventImageComment {
+  id        Int      @id @default(autoincrement())
+  imageId   Int      @map("image_id")
+  userId    Int      @map("user_id")
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  image EventImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("event_image_comments")
+}
+
+model EventImageLike {
+  id        Int      @id @default(autoincrement())
+  imageId   Int      @map("image_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  image EventImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([imageId, userId])
+  @@map("event_image_likes")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  type      String   @db.VarChar(30)
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+  relatedId Int?     @map("related_id")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model IpBlacklist {
+  id        Int       @id @default(autoincrement())
+  ip        String    @db.VarChar(45)
+  reason    String    @default("") @db.VarChar(500)
+  bannedAt  DateTime  @default(now()) @map("banned_at")
+  expiresAt DateTime? @map("expires_at")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  @@map("ip_blacklist")
+}
+
+model SecurityLog {
+  id        Int      @id @default(autoincrement())
+  type      String   @db.VarChar(50)
+  ip        String   @db.VarChar(45)
+  userId    Int?     @map("user_id")
+  detail    String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@index([createdAt])
+  @@map("security_logs")
+}
+
+model AdminOperationLog {
+  id        Int      @id @default(autoincrement())
+  adminId   Int      @map("admin_id")
+  action    String   @db.VarChar(100)
+  target    String   @db.VarChar(200)
+  detail    String   @db.Text
+  ip        String   @db.VarChar(45)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_operation_logs")
+}
+
+model SystemSetting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique @db.VarChar(100)
+  value String @db.Text
+
+  @@map("system_settings")
+}
+
+model CacheConfig {
+  id      Int     @id @default(autoincrement())
+  module  String  @unique @db.VarChar(50)
+  enabled Boolean @default(true)
+  ttl     Int     @default(3600)
+
+  @@map("cache_config")
+}

@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  username         String    @unique
+  password         String
+  realName         String    @map("real_name")
+  className        String    @default("") @map("class_name")
+  avatar           String    @default("")
+  signature        String    @default("")
+  birthday         String    @default("")
+  address          String    @default("")
+  hobbies          String    @default("")
+  phone            String    @default("")
+  email            String    @default("")
+  wechat           String    @default("")
+  weibo            String    @default("")
+  douyin           String    @default("")
+  bilibili         String    @default("")
+  coverImage       String    @default("") @map("cover_image")
+  cardBackground   String    @default("color") @map("card_background")
+  cardBgColor      String    @default("#ffffff") @map("card_bg_color")
+  cardBgImage      String    @default("") @map("card_bg_image")
+  phonePrivacy     String    @default("public") @map("phone_privacy")
+  emailPrivacy     String    @default("public") @map("email_privacy")
+  wechatPrivacy    String    @default("public") @map("wechat_privacy")
+  weiboPrivacy     String    @default("public") @map("weibo_privacy")
+  douyinPrivacy    String    @default("public") @map("douyin_privacy")
+  bilibiliPrivacy  String    @default("public") @map("bilibili_privacy")
+  privacyOverrides String    @default("{}") @map("privacy_overrides")
+  onlineStatus     Boolean   @default(false) @map("online_status")
+  lastActiveAt     DateTime? @map("last_active_at")
+  lastHeartbeatAt  DateTime? @map("last_heartbeat_at")
+  status           String    @default("active")
+  reviewStatus     String    @default("approved") @map("review_status")
+  mustChangePassword Boolean @default(true) @map("must_change_password")
+  notifyComment    Boolean   @default(true) @map("notify_comment")
+  notifyLike       Boolean   @default(true) @map("notify_like")
+  notifyAudit      Boolean   @default(true) @map("notify_audit")
+  notifySystem     Boolean   @default(true) @map("notify_system")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  classEvents       ClassEvent[]
+  eventImages       EventImage[]
+  notifications     Notification[]
+  albums            Album[]
+  albumImages       AlbumImage[]
+  eventComments     EventImageComment[]
+  eventLikes        EventImageLike[]
+
+  @@map("users")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String   @default("admin")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+model Album {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String   @default("")
+  coverImage  String   @default("") @map("cover_image")
+  visibility  String   @default("public")
+  allowSave   Boolean  @default(true) @map("allow_save")
+  creatorId   Int      @map("creator_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  creator User         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  images  AlbumImage[]
+
+  @@map("albums")
+}
+
+model AlbumImage {
+  id         Int      @id @default(autoincrement())
+  albumId    Int      @map("album_id")
+  url        String
+  uploaderId Int      @map("uploader_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  album    Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  uploader User  @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@map("album_images")
+}
+
+model ClassEvent {
+  id          Int          @id @default(autoincrement())
+  userId      Int          @map("user_id")
+  title       String
+  description String
+  eventDate   DateTime     @map("event_date")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images EventImage[]
+
+  @@map("class_events")
+}
+
+model EventImage {
+  id           Int        @id @default(autoincrement())
+  eventId      Int        @map("event_id")
+  userId       Int        @map("user_id")
+  imageType    String     @map("image_type")
+  url          String
+  thumbnailUrl String     @map("thumbnail_url")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  event    ClassEvent         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments EventImageComment[]
+  likes    EventImageLike[]
+
+  @@map("event_images")
+}
+
+model EventImageComment {
+  id        Int      @id @default(autoincrement())
+  imageId   Int      @map("image_id")
+  userId    Int      @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  image EventImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("event_image_comments")
+}
+
+model EventImageLike {
+  id        Int      @id @default(autoincrement())
+  imageId   Int      @map("image_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  image EventImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([imageId, userId])
+  @@map("event_image_likes")
+}
+
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  type      String
+  title     String
+  content   String
+  relatedId Int?     @map("related_id")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model IpBlacklist {
+  id        Int       @id @default(autoincrement())
+  ip        String
+  reason    String    @default("")
+  bannedAt  DateTime  @default(now()) @map("banned_at")
+  expiresAt DateTime? @map("expires_at")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  @@map("ip_blacklist")
+}
+
+model SecurityLog {
+  id        Int      @id @default(autoincrement())
+  type      String
+  ip        String
+  userId    Int?     @map("user_id")
+  detail    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@index([createdAt])
+  @@map("security_logs")
+}
+
+model AdminOperationLog {
+  id        Int      @id @default(autoincrement())
+  adminId   Int      @map("admin_id")
+  action    String
+  target    String
+  detail    String
+  ip        String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_operation_logs")
+}
+
+model SystemSetting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+
+  @@map("system_settings")
+}
+
+model CacheConfig {
+  id      Int     @id @default(autoincrement())
+  module  String  @unique
+  enabled Boolean @default(true)
+  ttl     Int     @default(3600)
+
+  @@map("cache_config")
+}
